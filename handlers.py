@@ -40,19 +40,19 @@ class Questions(StatesGroup):
 
 # Пример enum для интересов
 class InterestsEnum(Enum):
-    SPORTS = "Спорт"
-    MUSIC = "Музыка"
-    ART = "Искусство"
-    TECHNOLOGY = "Технологии"
-    TRAVEL = "Путешествия"
+    WEB3 = "Web3"
+    SAFE_TECHNOLOGY = "SAFE Technologies"
+    DAO = "DAOs"
+    TRADING = "Trading"
+    AI = "AI"
+    SMART_CONTRACTS = "Smart Contracts"
     FOOD = "Еда"
     GAMING = "Игры"
     SCIENCE = "Наука"
-    
+
+
 
 # Фабрика callback_data для интересов
-
-
 intersts_dict = {i.name: {"text": i.value, 'state':'off'} for i in InterestsEnum}
 
 hello_photo_list = ["images/image1.png","images/image2.png"]
@@ -68,10 +68,8 @@ async def start_handler(message: types.Message, state: FSMContext):
             message.from_user.first_name,
             message.from_user.last_name
         )
-    await message.answer(
-#         """<pre language="welcome">
-# in our web3 community</pre>"""
-        """```welcome
+    
+    album_caption = """```welcome
 in our web3 community```
 
 *This bot will help you:*
@@ -80,10 +78,16 @@ in our web3 community```
 - It's better to join our community
 - To answer your questions about web3
 
-```But 
-let's begin with an introduction. Can you tell me your name?```
+```But let's begin with an introduction. Can you tell me your name?```
 """
-,parse_mode="Markdown")
+
+    # Отправляем альбом с фотографиями (или текст, если фотографий нет)
+    if not hello_photo_list:
+        await message.answer(album_caption)
+    else:
+        album = get_album(hello_photo_list, album_caption)
+        await message.answer_media_group(media=album.build())
+
     # Устанавливаем FSM‑состояние
     await state.set_state(Registration.waiting_for_name)
 
@@ -94,38 +98,26 @@ async def process_name(message: types.Message, state: FSMContext):
     is_valid = await validate_name(name)
     if not is_valid:
         await message.answer(
-            "Кажется, это не похоже на корректное имя. Укажите другое или введите 'аноним'."
+            "It doesn't seem like the right name. Please specify another name"
         )
         return
     
     user = await get_user_without_session(message.from_user.id)
     if user:
-        # Если пользователь решил быть анонимом:
-        if name.lower() in ["аноним", "гость"]:
-            user.first_name = "Аноним"
-            user.last_name = ""
-        else:
-            user.first_name = name
-        # Пример «логического» статуса в user.state (не путать с fsm_state):
-        user.state = "Registered"
-        user.balance += 10
-        # await session.commit()
-
-    album_caption = "<b>Добро пожаловать в наше сообщество!</b> \n\n Вам зачислено 10 токенов."
-    
-    # Отправляем альбом с фотографиями (или текст, если фотографий нет)
-    if not hello_photo_list:
-        await message.answer(album_caption)
-    else:
-        album = get_album(hello_photo_list, album_caption)
-        await message.answer_media_group(media=album.build())
+        user.first_name = name
+    # Пример «логического» статуса в user.state (не путать с fsm_state):
+    user.state = "Registered"
+    user.balance += 10
 
     # Отправляем клавиатуру для перехода в чат
-    button = InlineKeyboardButton(text="Вступить в чат", url=CHAT_LINK)
+    button = InlineKeyboardButton(text="Join the chat", url=CHAT_LINK)
     keyboard = types.InlineKeyboardMarkup(row_width=2, inline_keyboard=[[button]])
 
     await message.answer(
-        "Нажмите на кнопку, чтобы вступить в чат.",
+        """*Nice to meet you!*
+        
+        ```click
+on the button to join the chat.```""",
         reply_markup=keyboard
     )
     await state.clear()
@@ -142,7 +134,7 @@ async def schedule_interests(message: Message):
 
     await message.bot.send_message(
         chat_id,
-        """<pre><code class="language-welcome">
+        """<pre class="language-welcome">
 in our web3 community"""
         "Добрый день!\n\nУкажите ваши интересы:",
         reply_markup=keyboard

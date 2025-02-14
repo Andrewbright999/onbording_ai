@@ -14,23 +14,22 @@ client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 async def validate_name(name: str) -> bool:
     """
-    Проверяет, является ли переданный текст корректным именем или сигналом для анонимной регистрации.
+    They send you a name, if it's a name, then write "yes", if it's not a name, then send "no".
     """
     prompt = (
-        f"Является ли '{name}' корректным именем человека? Если текст указывает на желание "
-        f"анонимной регистрации (например, 'аноним' или 'гость'), ответь 'да'."
+        f""""if it's that word: {name} is name, then write "yes", if it's not a name, then send "no" """
     )
     response = await client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "Ты проверяешь корректность имени."},
+            {"role": "system", "content": """hey send you a name, if it's a name, then write "yes", if it's not a name, then send "no"."""},
             {"role": "user", "content": prompt},
         ],
     )
     # Получаем ответ из pydantic-модели
     answer = response.choices[0].message.content.lower()
     print(answer)
-    return "да" in answer
+    return "yes" in answer
 
 async def analyze_feedback(feedback: str) -> str:
     """

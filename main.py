@@ -27,7 +27,7 @@ async def main():
     # dp = Dispatcher(storage=MemoryStorage())
     bot = Bot(token=BOT_TOKEN,
                 default=DefaultBotProperties(
-                parse_mode=ParseMode.HTML)
+                parse_mode=ParseMode.MARKDOWN)
             )
     dp = Dispatcher(storage=storage)
     # dp.include_router(router_debug)
