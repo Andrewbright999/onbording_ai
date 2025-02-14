@@ -1,0 +1,5 @@
+.venv/
+.env
+convers*.txt
+database_legacy.py
+*test*
