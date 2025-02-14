@@ -36,12 +36,12 @@ async def analyze_feedback(feedback: str) -> str:
     Анализирует отзыв и возвращает тональность: Positive или Negative.
     """
     prompt = (
-        f"Проанализируй следующий отзыв и ответь только 'Positive' или 'Negative': {feedback}"
+        f"Analyze the following review and respond only 'Positive' or 'Negative': {feedback}"
     )
     response = await client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "Ты анализируешь эмоциональную окраску отзыва."},
+            {"role": "system", "content": "Are you analyzing the emotional coloring of the review."},
             {"role": "user", "content": prompt},
         ],
     )
@@ -61,7 +61,7 @@ async def answer_question(question: str, context: str, conversation_context: str
     response = await client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "Ты помогаешь пользователю, отвечая на вопросы о сообществе."},
+            {"role": "system", "content": "You help the user by answering questions about the web3 community."},
             {"role": "user", "content": prompt},
         ],
     )
@@ -74,4 +74,4 @@ def get_context() -> str:
         with open("community_context.txt", "r", encoding="utf-8") as f:
             return f.read()
     except FileNotFoundError:
-        return "Информация о сообществе по умолчанию."
+        return "web3 communyty"

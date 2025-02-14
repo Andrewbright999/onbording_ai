@@ -20,7 +20,7 @@ from database import (
     # update_user_feedback
 )
 
-from msg_utils import get_album, get_callback_factory_buttons
+from msg_utils import get_album, get_callback_factory_buttons, get_callback_buttons_pref
 from gpt_manager import validate_name, analyze_feedback, answer_question, get_context
 from config import CHAT_LINK, BOT_TOKEN
 
@@ -41,21 +41,35 @@ class Questions(StatesGroup):
 # Пример enum для интересов
 class InterestsEnum(Enum):
     WEB3 = "Web3"
-    SAFE_TECHNOLOGY = "SAFE Technologies"
+    SAFE_TECHNOLOGY = "SAFE Technology"
     DAO = "DAOs"
     TRADING = "Trading"
     AI = "AI"
     SMART_CONTRACTS = "Smart Contracts"
-    FOOD = "Еда"
-    GAMING = "Игры"
-    SCIENCE = "Наука"
-
-
 
 # Фабрика callback_data для интересов
 intersts_dict = {i.name: {"text": i.value, 'state':'off'} for i in InterestsEnum}
 
 hello_photo_list = ["images/image1.png","images/image2.png"]
+
+
+intrst_msg = """
+*Let's get to know each other better!* 
+
+```for
+more personalized recommendations and tips, specify your areas of interest.```"""
+
+welcome_msg = """```welcome
+in our web3 community```
+
+*This bot will help you:*
+- Create and configure your wallet and accounts
+- Understand smart contracts and blockchain
+- It's better to join our community
+- To answer your questions about web3
+
+```But let's begin with an introduction. Can you tell me your name?```
+"""
 
 
 @router.message(Command("start"))
@@ -68,24 +82,12 @@ async def start_handler(message: types.Message, state: FSMContext):
             message.from_user.first_name,
             message.from_user.last_name
         )
-    
-    album_caption = """```welcome
-in our web3 community```
-
-*This bot will help you:*
-- Create and configure your wallet and accounts
-- Understand smart contracts and blockchain
-- It's better to join our community
-- To answer your questions about web3
-
-```But let's begin with an introduction. Can you tell me your name?```
-"""
 
     # Отправляем альбом с фотографиями (или текст, если фотографий нет)
     if not hello_photo_list:
-        await message.answer(album_caption)
+        await message.answer(welcome_msg)
     else:
-        album = get_album(hello_photo_list, album_caption)
+        album = get_album(hello_photo_list, welcome_msg)
         await message.answer_media_group(media=album.build())
 
     # Устанавливаем FSM‑состояние
@@ -133,10 +135,7 @@ async def schedule_interests(message: Message):
     keyboard = get_callback_factory_buttons(intersts_dict)
 
     await message.bot.send_message(
-        chat_id,
-        """<pre class="language-welcome">
-in our web3 community"""
-        "Добрый день!\n\nУкажите ваши интересы:",
+        chat_id=chat_id, text= intrst_msg,
         reply_markup=keyboard
     )
 
@@ -168,10 +167,10 @@ async def interest_toggle(callback: CallbackQuery, callback_data: InterestsCallb
 
     # Создаем новую клавиатуру с обновленным состоянием
     new_keyboard = get_callback_factory_buttons(person_intersts)
-
     # Обновляем сообщение с новыми кнопками
-    await callback.message.edit_text("Добрый день!\n\nУкажите ваши интересы:", reply_markup=new_keyboard)
+    await callback.message.edit_text(intrst_msg, reply_markup=new_keyboard)
     await callback.answer()
+
 
 
 @router.callback_query(lambda c: c.data == "done_btn")
@@ -185,25 +184,40 @@ async def interests_done(callback: types.CallbackQuery, state: FSMContext):
             if len(data) == 3:
                 state = data[-1]
                 enum_interest = button.callback_data.split(':')[1]
-    # async with async_session() as session:
-    #     user = await get_user_without_session(callback.from_user.id)
-    #     if user:
-    #         user.interests = interests_str
-    #         user.balance += 10
-    #         await session.commit()
+                
+    await callback.message.edit_text(
+"""*Great, we're sure you'll find like-minded people in our community!*
 
-    # Завершаем выбор интересов
-    await callback.message.edit_reply_markup()
-    await callback.message.answer("Отлично! Мы разделяем ваши увлечения. Вам зачислено 10 токенов.")
+This way your help will be more personalized.
+You will also receive tokens for completing the training, which will be credited to your account as a result.
+
+```balance
+0+10 tokens```
+
+```progress
+1 of n```
+""", keyboard=None)
+    asyncio.create_task(schedule_feedback(callback.message))
 
 
+
+async def schedule_feedback(message: types.Message):
+    chat_id  = message.chat.id
+    await asyncio.sleep(5)  # Через 5 сек
+    feedback_btns = {"yes": "Yes", "no": "No"}
+    keyboard = get_callback_buttons_pref(feedback_btns, prefix="feedback")
+    await message.bot.send_message(
+        chat_id=chat_id,
+        text="We would like to receive your feedback. Do you like our community?",
+        reply_markup=keyboard
+    )
+    
+
+    
 @router.message(Command("feedback"))
 async def feedback_initiate(message: types.Message, state: FSMContext):
-    keyboard = types.InlineKeyboardMarkup(row_width=2)
-    keyboard.add(
-        types.InlineKeyboardButton(text="Да", callback_data="feedback_yes"),
-        types.InlineKeyboardButton(text="Нет", callback_data="feedback_no"),
-    )
+    feedback_btns = {"yes": "Yes", "no": "No"}
+    keyboard = get_callback_buttons_pref(feedback_btns, prefix="feedback")
     await message.answer(
         "Хотим получить вашу обратную связь. Вам нравится в нашем сообществе?",
         reply_markup=keyboard
@@ -213,9 +227,11 @@ async def feedback_initiate(message: types.Message, state: FSMContext):
 @router.callback_query(lambda c: c.data in ["feedback_yes", "feedback_no"])
 async def feedback_choice(callback: types.CallbackQuery, state: FSMContext):
     if callback.data == "feedback_yes":
-        await callback.message.answer("Прекрасно! Расскажите, что именно понравилось.")
+        await callback.message.answer("""*Perfectly!* 
+Please Tell us what exactly you liked.""")
     else:
-        await callback.message.answer("Давайте это исправим! Расскажите, что не понравилось.")
+        await callback.message.answer("""*Let's fix this!*s
+Tell us what you didn't like.""")
     await state.set_state(Feedback.waiting_for_feedback)
     await callback.answer()
 
@@ -224,19 +240,9 @@ async def feedback_choice(callback: types.CallbackQuery, state: FSMContext):
 async def process_feedback(message: types.Message, state: FSMContext):
     feedback_text = message.text
     sentiment = await analyze_feedback(feedback_text)
-    # async with async_session() as session:
-        # await update_user_feedback(message.from_user.id, feedback_text, sentiment)
-    await message.answer("Спасибо за ваш отзыв!")
+    await message.answer("Thank you for your feedback!")
     await state.clear()
     
-
-# ---- Вопросы / GPT
-@router.message(Command("ask"))
-async def ask_command(message: types.Message, state: FSMContext):
-    await message.answer("Задайте ваш вопрос:")
-    await state.set_state(Questions.waiting_for_question)
-
-
 @router.message(Questions.waiting_for_question)
 async def process_question(message: types.Message, state: FSMContext):
     context = get_context()

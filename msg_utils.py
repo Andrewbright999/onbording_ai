@@ -17,7 +17,7 @@ def get_callback_buttons_pref(btns: dict[str, str] | str, prefix: str = None):
     keyboard = InlineKeyboardBuilder()
     for data, text in btns.items():
         print(text)
-        keyboard.add(InlineKeyboardButton(text=text,callback_data=prefix+data))
+        keyboard.add(InlineKeyboardButton(text=text,callback_data=prefix+"_"+data))
     # keyboard.add(InlineKeyboardButton(text=text,callback_data=prefix+back_button))
     return keyboard.adjust(1).as_markup()
 
@@ -28,22 +28,8 @@ def get_callback_buttons(btns: dict[str, str] | str):
     for text, data in btns.items():
         print(text)
         keyboard.add(InlineKeyboardButton(text=data,callback_data=text))
-    keyboard.add(InlineKeyboardButton(text="Готово ✅",callback_data="done_btn"))
+    keyboard.add(InlineKeyboardButton(text="Done ✅",callback_data="done_btn"))
     return keyboard.adjust(1).as_markup()
-
-
-def get_callback_factory_buttons_old(btns: dict[str, str] | str):
-    keyboard = InlineKeyboardBuilder()
-    for data, text in btns.items():
-        print(text)
-        keyboard.add(InlineKeyboardButton(text=text,
-                             callback_data=InterestsCallbackFactory(interest = data, state='off').pack()
-                             ))
-    keyboard.add(InlineKeyboardButton(text="Готово ✅",callback_data="done_btn"))
-    return keyboard.adjust(1).as_markup()
-
-
-
 
 
 def get_callback_factory_buttons(btns: dict[str, dict] | str):
@@ -52,11 +38,11 @@ def get_callback_factory_buttons(btns: dict[str, dict] | str):
         state = prop["state"]
         text = prop["text"]
         if state == 'on':
-            text = "✅ " + text
+            text = "✔️ " + text
         keyboard.add(InlineKeyboardButton(text=text,
                              callback_data=InterestsCallbackFactory(interest = data, state=prop["state"]).pack()
                              ))
-    keyboard.add(InlineKeyboardButton(text="Готово ✅",callback_data="done_btn"))
+    keyboard.add(InlineKeyboardButton(text="Done ✅",callback_data="done_btn"))
     return keyboard.adjust(1).as_markup()
 
 
